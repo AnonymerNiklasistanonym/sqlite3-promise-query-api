@@ -1,0 +1,29 @@
+# List files that should be ingored when publishing
+# (it respects the .gitignore list)
+
+# Ignore git attributes file
+.gitattributes
+# Ignore github CI/CD
+.github
+# Ignore source files
+src
+# Ignore tests
+test
+# Ignore ESlint configuration
+.eslintrc.js
+# Ignore Prettier configuration
+.prettierrc.js
+# Ignore Typescript configuration file
+tsconfig.json
+# Ignore authentication schema
+authentication.schema.json
+# Ignore authentication secret because it is not parsed from the gitingore correctly
+authentication.secret.json
+
+# Ignore cached files
+cached-osu-api-responses
+# Ignore code coverage files
+.nyc_output
+coverage
+# Ignore previous packaged files
+osu-api-v2-*.tgz

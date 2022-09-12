@@ -1,0 +1,27 @@
+{
+    "compilerOptions": {
+        "declaration": true,
+        "module": "CommonJS",
+        "esModuleInterop": true,
+        "outDir": "lib",
+        "rootDir": "src",
+        "strict": true,
+        "lib": [
+            "ES5",
+            "ES2015",
+            "ES2016",
+            "ES2017",
+            "ES2018",
+            "ES2019",
+            "ES2020"
+        ],
+        "target": "ES2015",
+        "types": ["node"]
+    },
+    "exclude": [
+        "lib",
+        "node_modules",
+        "test"
+    ],
+    "include": ["src"]
+}
