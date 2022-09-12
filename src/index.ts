@@ -3,15 +3,23 @@ import * as sqlite3 from "./sqlite3"
 import * as queries from "./queries"
 import * as requests from "./requests"
 
+export { CreateDatabaseErrorCode, ErrorCodeOpen } from "./sqlite3"
+export { LogLevel } from "./logging"
+export { CreateTableColumnType } from "./queries"
+
+export type { Logger } from "./logging"
 export type {
     CreateTableColumn,
+    CreateTableColumnForeign,
+    CreateTableColumnOptions,
+    ExistsDbOut,
     SelectColumn,
     SelectQueryInnerJoin,
     SelectQueryOptions,
     SelectQueryOrderBy,
     SelectWhereColumn,
 } from "./queries"
-export type { SqliteInternalError, OpenDatabaseOptions } from "./sqlite3"
+export type { OpenDatabaseOptions, SqliteInternalError } from "./sqlite3"
 export type { SqliteTable, SqliteView } from "./helper"
 
 const sqlite3PromiseQueryApi = {

@@ -53,7 +53,7 @@ export const isDatabaseError = (error: unknown): boolean => {
  */
 // Disable eslint warning because never/unknown make it impossible to use types
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-export const getEach = async <DB_OUT extends { [key: string]: any }>(
+export const getEach = async <DB_OUT extends Record<string, any>>(
     databasePath: string,
     query: string,
     parameters: (string | number)[] = [],
@@ -125,7 +125,7 @@ export const getEach = async <DB_OUT extends { [key: string]: any }>(
  */
 // Disable eslint warning because never/unknown make it impossible to use types
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-export const getAll = async <DB_OUT extends { [key: string]: any }>(
+export const getAll = async <DB_OUT extends Record<string, any>>(
     databasePath: string,
     query: string,
     parameters: (string | number)[] = [],
