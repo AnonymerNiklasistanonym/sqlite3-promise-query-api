@@ -19,12 +19,13 @@ jobs:
   # The build job tries to built the api library and checks formatting, linting
   # and test results
   build:
-    # Run the job on the latest Ubuntu runner
-    runs-on: ubuntu-latest
-    # Specify the node versions that should be checked
+    # Specify the text matrix (os/versions) that should be checked
     strategy:
       matrix:
+        os: [ubuntu-latest,windows-latest]
         node-version: [17.x, 18.x]
+    # Run the job on the specified os
+    runs-on: ${{ matrix.os }}
     # The following steps should be sequentially executed:
     steps:
     # Checkout the current repository
@@ -46,6 +47,8 @@ jobs:
     - name: Verify tests and get coverage
       run: npm run nyc
     - name: Lint code for errors/warnings
+      if: matrix.os == 'ubuntu-latest'
       run: npm run lint
     - name: Check code for formatting errors
+      if: matrix.os == 'ubuntu-latest'
       run: npm run format

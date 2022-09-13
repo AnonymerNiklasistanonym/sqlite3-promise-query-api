@@ -21,6 +21,35 @@ export default (databaseDirPath: string): Mocha.Suite => {
             await db.sqlite3.remove(databasePath, logMethod)
             const exists = await db.sqlite3.exists(databasePath, logMethod)
             chai.expect(exists).to.equal(false, "Database does not exist")
+
+            await db.sqlite3.remove(databasePath, logMethod)
+            let throwsException1 = false
+            try {
+                await db.sqlite3.open(databasePath, logMethod, {
+                    readOnly: true,
+                })
+            } catch (error) {
+                throwsException1 = true
+                chai.expect((error as SqliteInternalError).code).to.deep.equal(
+                    db.sqlite3.ErrorCodeOpen.SQLITE_CANTOPEN,
+                )
+            }
+            chai.expect(throwsException1).to.equal(true)
+
+            // This test breaks the CI
+            //await db.sqlite3.remove("/", logMethod)
+            //let throwsException2 = false
+            //try {
+            //    await db.sqlite3.open(databasePath, logMethod, {
+            //        readOnly: true,
+            //    })
+            //} catch (error) {
+            //    throwsException2 = true
+            //    chai.expect((error as SqliteInternalError).code).to.deep.equal(
+            //        db.sqlite3.ErrorCodeOpen.SQLITE_CANTOPEN,
+            //    )
+            //}
+            //chai.expect(throwsException2).to.equal(true)
         })
         itAllowFail("create", process.platform === "win32", async () => {
             const databasePath = path.join(databaseDirPath, "create.db")
@@ -37,6 +66,17 @@ export default (databaseDirPath: string): Mocha.Suite => {
                 undefined,
                 "Database not undefined",
             )
+
+            let throwsExceptionCreate1 = false
+            try {
+                await db.sqlite3.create("/", logMethod)
+            } catch (error) {
+                throwsExceptionCreate1 = true
+                chai.expect((error as SqliteInternalError).code).to.deep.equal(
+                    db.sqlite3.ErrorCodeOpen.SQLITE_CANTOPEN,
+                )
+            }
+            chai.expect(throwsExceptionCreate1).to.equal(true)
         })
         itAllowFail("open", process.platform === "win32", async () => {
             const databasePath = path.join(databaseDirPath, "open.db")
@@ -48,18 +88,6 @@ export default (databaseDirPath: string): Mocha.Suite => {
                 undefined,
                 "Database not undefined",
             )
-
-            let throwsExceptionCreate1 = false
-            try {
-                await db.sqlite3.create("/", logMethod)
-            } catch (error) {
-                throwsExceptionCreate1 = true
-                console.error(error)
-                chai.expect((error as SqliteInternalError).code).to.deep.equal(
-                    db.sqlite3.ErrorCodeOpen.SQLITE_CANTOPEN,
-                )
-            }
-            chai.expect(throwsExceptionCreate1).to.equal(true)
 
             let throwsExceptionOpen1 = false
             try {
@@ -93,20 +121,6 @@ export default (databaseDirPath: string): Mocha.Suite => {
                 )
             }
             chai.expect(throwsException1).to.equal(true)
-
-            await db.sqlite3.remove(databasePath, logMethod)
-            let throwsException2 = false
-            try {
-                await db.sqlite3.open(databasePath, logMethod, {
-                    readOnly: true,
-                })
-            } catch (error) {
-                throwsException2 = true
-                chai.expect((error as SqliteInternalError).code).to.deep.equal(
-                    db.sqlite3.ErrorCodeOpen.SQLITE_CANTOPEN,
-                )
-            }
-            chai.expect(throwsException2).to.equal(true)
         }).timeout(githubCiMaxTimeout)
     })
 }

@@ -57,25 +57,32 @@ export const getEach = async <DB_OUT extends Record<string, any>>(
     databasePath: string,
     query: string,
     parameters: (string | number)[] = [],
-    // eslint-disable-next-line @typescript-eslint/no-empty-function
-    logger: Logger = () => {},
+    logger?: Logger,
 ): Promise<DB_OUT | undefined> => {
-    logger(LogLevel.DEBUG, `Run query: '${query}'`, "getEach")
+    if (logger !== undefined) {
+        logger(LogLevel.DEBUG, `Run query: '${query}'`, "getEach")
+    }
     const db = await open(databasePath, logger, { readOnly: true })
     let requestedElement: DB_OUT
     return new Promise((resolve, reject) =>
         db
-            .on("trace", (sql) => logger(LogLevel.DEBUG, sql, "getEach"))
+            .on("trace", (sql) => {
+                if (logger !== undefined) {
+                    logger(LogLevel.DEBUG, sql, "getEach")
+                }
+            })
             .each(
                 query,
                 parameters,
                 (err, row) => {
                     if (err) {
-                        logger(
-                            LogLevel.ERROR,
-                            Error(`Database error row: ${err.message}`),
-                            "getEach",
-                        )
+                        if (logger !== undefined) {
+                            logger(
+                                LogLevel.ERROR,
+                                Error(`Database error row: ${err.message}`),
+                                "getEach",
+                            )
+                        }
                         reject(err)
                     } else {
                         requestedElement = row as DB_OUT
@@ -83,14 +90,16 @@ export const getEach = async <DB_OUT extends Record<string, any>>(
                 },
                 (err) => {
                     if (err) {
-                        logger(
-                            LogLevel.ERROR,
-                            Error(`Database error: ${err.message}`),
-                            "getEach",
-                        )
+                        if (logger !== undefined) {
+                            logger(
+                                LogLevel.ERROR,
+                                Error(`Database error: ${err.message}`),
+                                "getEach",
+                            )
+                        }
                     }
                     db.close((errClose) => {
-                        if (errClose) {
+                        if (errClose && logger !== undefined) {
                             logger(
                                 LogLevel.ERROR,
                                 Error(
@@ -102,11 +111,15 @@ export const getEach = async <DB_OUT extends Record<string, any>>(
                         if (err || errClose) {
                             return reject(err ? err : errClose)
                         }
-                        logger(
-                            LogLevel.DEBUG,
-                            `Run result: '${JSON.stringify(requestedElement)}'`,
-                            "getEach",
-                        )
+                        if (logger !== undefined) {
+                            logger(
+                                LogLevel.DEBUG,
+                                `Run result: '${JSON.stringify(
+                                    requestedElement,
+                                )}'`,
+                                "getEach",
+                            )
+                        }
                         resolve(requestedElement)
                     })
                 },
