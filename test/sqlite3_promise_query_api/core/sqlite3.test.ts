@@ -49,6 +49,29 @@ export default (databaseDirPath: string): Mocha.Suite => {
                 "Database not undefined",
             )
 
+            let throwsExceptionCreate1 = false
+            try {
+                await db.sqlite3.create("/", logMethod)
+            } catch (error) {
+                throwsExceptionCreate1 = true
+                console.error(error)
+                chai.expect((error as SqliteInternalError).code).to.deep.equal(
+                    db.sqlite3.ErrorCodeOpen.SQLITE_CANTOPEN,
+                )
+            }
+            chai.expect(throwsExceptionCreate1).to.equal(true)
+
+            let throwsExceptionOpen1 = false
+            try {
+                await db.sqlite3.open(databasePath + "a", logMethod)
+            } catch (error) {
+                throwsExceptionOpen1 = true
+                chai.expect((error as SqliteInternalError).code).to.deep.equal(
+                    db.sqlite3.ErrorCodeOpen.SQLITE_CANTOPEN,
+                )
+            }
+            chai.expect(throwsExceptionOpen1).to.equal(true)
+
             await db.sqlite3.remove(databasePath, logMethod)
             await db.sqlite3.create(databasePath, logMethod)
             const dbReadOnly = await db.sqlite3.open(databasePath, logMethod, {

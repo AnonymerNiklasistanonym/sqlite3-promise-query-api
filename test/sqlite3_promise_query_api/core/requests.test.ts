@@ -155,12 +155,12 @@ export default (databaseDirPath: string): Mocha.Suite => {
             const querySelectAllColumns = db.queries.select(
                 tableName,
                 tableColumns.map((a) => a.name),
-                { whereColumn: "integer" },
+                { whereColumns: { columnName: "integer" } },
             )
             const querySelectLastColumn = db.queries.select(
                 tableName,
                 [tableColumns.map((a) => a.name).slice(-1)[0]],
-                { whereColumn: "integer" },
+                { whereColumns: { columnName: "integer" } },
             )
 
             const getResultSelectAllColumns1 = await db.requests.getEach(
@@ -271,12 +271,12 @@ export default (databaseDirPath: string): Mocha.Suite => {
             const querySelectAllColumns = db.queries.select(
                 tableName,
                 tableColumns.map((a) => a.name),
-                { whereColumn: "integer" },
+                { whereColumns: { columnName: "integer" } },
             )
             const querySelectLastColumn = db.queries.select(
                 tableName,
                 [tableColumns.map((a) => a.name).slice(-1)[0]],
-                { whereColumn: "integer" },
+                { whereColumns: { columnName: "integer" } },
             )
 
             const getResultSelectAllColumns1 = await db.requests.getAll(

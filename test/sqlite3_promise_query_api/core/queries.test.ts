@@ -1,5 +1,5 @@
 /* eslint-disable no-magic-numbers */
-import db from "../../../src/index"
+import db, { SelectColumn } from "../../../src/index"
 import chai from "chai"
 import { describe } from "mocha"
 // Type imports
@@ -72,10 +72,18 @@ export default (): Mocha.Suite => {
                     {
                         foreign: {
                             column: "group_id",
-                            options: ["ON DELETE CASCADE ON UPDATE NO ACTION"],
+                            options: [],
                             tableName: "groups",
                         },
                         name: "group_id",
+                        type: db.queries.CreateTableColumnType.INTEGER,
+                    },
+                    {
+                        foreign: {
+                            column: "group_id",
+                            tableName: "groups",
+                        },
+                        name: "group_id_2",
                         type: db.queries.CreateTableColumnType.INTEGER,
                     },
                 ],
@@ -88,9 +96,10 @@ export default (): Mocha.Suite => {
             )
             chai.expect(queryCreateTable3).to.deep.equal(
                 "CREATE TABLE IF NOT EXISTS contact_groups " +
-                    "(contact_id INTEGER,group_id INTEGER," +
+                    "(contact_id INTEGER,group_id INTEGER,group_id_2 INTEGER," +
                     "FOREIGN KEY (contact_id) REFERENCES contacts (contact_id) ON DELETE CASCADE ON UPDATE NO ACTION," +
-                    "FOREIGN KEY (group_id) REFERENCES groups (group_id) ON DELETE CASCADE ON UPDATE NO ACTION);",
+                    "FOREIGN KEY (group_id) REFERENCES groups (group_id)," +
+                    "FOREIGN KEY (group_id_2) REFERENCES groups (group_id));",
             )
 
             const queryCreateTable4 = db.queries.createTable(
@@ -98,7 +107,7 @@ export default (): Mocha.Suite => {
                 [
                     {
                         name: "integer_with_default",
-                        options: { default: 0, notNull: true },
+                        options: { default: 0, notNull: false },
                         type: db.queries.CreateTableColumnType.INTEGER,
                     },
                     {
@@ -130,7 +139,7 @@ export default (): Mocha.Suite => {
             )
             chai.expect(queryCreateTable4).to.deep.equal(
                 "CREATE TABLE table_column_options_test " +
-                    "(integer_with_default INTEGER NOT NULL DEFAULT 0,real_with_default REAL NOT NULL DEFAULT 72.934,text_with_default TEXT NOT NULL DEFAULT 'default',id INTEGER PRIMARY KEY UNIQUE NOT NULL);",
+                    "(integer_with_default INTEGER DEFAULT 0,real_with_default REAL NOT NULL DEFAULT 72.934,text_with_default TEXT NOT NULL DEFAULT 'default',id INTEGER PRIMARY KEY UNIQUE NOT NULL);",
             )
         })
         it("drop table", () => {
@@ -154,6 +163,56 @@ export default (): Mocha.Suite => {
                 "DROP TABLE IF EXISTS test;",
             )
         })
+        it("create view", () => {
+            const columns: SelectColumn[] = [
+                {
+                    columnName: "userId",
+                },
+                {
+                    alias: "rank",
+                    columnName: db.queries.rowNumberOver([
+                        {
+                            ascending: false,
+                            column: "elementCount",
+                        },
+                        {
+                            ascending: true,
+                            column: "userName",
+                        },
+                    ]),
+                },
+            ]
+
+            const queryCreateTable1 = db.queries.createView(
+                "test_view",
+                "test",
+                columns,
+                undefined,
+                true,
+            )
+            chai.expect(queryCreateTable1).to.be.a("string")
+            chai.expect(queryCreateTable1.length).to.be.above(
+                0,
+                "Query not empty",
+            )
+            chai.expect(queryCreateTable1).to.deep.equal(
+                "CREATE VIEW IF NOT EXISTS test_view AS " +
+                    "SELECT userId,ROW_NUMBER () OVER (ORDER BY elementCount DESC,userName ASC) AS rank FROM test;",
+            )
+        })
+        it("drop view", () => {
+            const queryDropView1 = db.queries.dropView("test")
+            chai.expect(queryDropView1).to.be.a("string")
+            chai.expect(queryDropView1.length).to.be.above(0, "Query not empty")
+            chai.expect(queryDropView1).to.deep.equal("DROP VIEW test;")
+
+            const queryDropView2 = db.queries.dropView("test", true)
+            chai.expect(queryDropView2).to.be.a("string")
+            chai.expect(queryDropView2.length).to.be.above(0, "Query not empty")
+            chai.expect(queryDropView2).to.deep.equal(
+                "DROP VIEW IF EXISTS test;",
+            )
+        })
         it("exists", () => {
             const queryExists1 = db.queries.exists("test")
             chai.expect(queryExists1).to.be.a("string")
@@ -162,7 +221,9 @@ export default (): Mocha.Suite => {
                 "SELECT EXISTS(SELECT 1 FROM test WHERE id=?) AS exists_value;",
             )
 
-            const queryExists2 = db.queries.exists("test", "column")
+            const queryExists2 = db.queries.exists("test", {
+                columnName: "column",
+            })
             chai.expect(queryExists2).to.be.a("string")
             chai.expect(queryExists2.length).to.be.above(0, "Query not empty")
             chai.expect(queryExists2).to.deep.equal(
@@ -188,11 +249,57 @@ export default (): Mocha.Suite => {
                 "DELETE FROM test WHERE id=?;",
             )
 
-            const queryRemove2 = db.queries.remove("test", "columnWhere")
+            const queryRemove2 = db.queries.remove("test", {
+                columnName: "columnWhere",
+            })
             chai.expect(queryRemove2).to.be.a("string")
             chai.expect(queryRemove2.length).to.be.above(0, "Query not empty")
             chai.expect(queryRemove2).to.deep.equal(
                 "DELETE FROM test WHERE columnWhere=?;",
+            )
+
+            const queryRemove3 = db.queries.remove("test", {
+                and: { columnName: "columnWhere2" },
+                columnName: "columnWhere",
+            })
+            chai.expect(queryRemove3).to.be.a("string")
+            chai.expect(queryRemove3.length).to.be.above(0, "Query not empty")
+            chai.expect(queryRemove3).to.deep.equal(
+                "DELETE FROM test WHERE (columnWhere=? AND columnWhere2=?);",
+            )
+
+            const queryRemove4 = db.queries.remove("test", {
+                columnName: "columnWhere",
+                operation: "=",
+                or: {
+                    and: [
+                        {
+                            columnName: "columnWhere3",
+                            operation: ">",
+                            or: [
+                                {
+                                    columnName: "columnWhere31",
+                                    operation: ">=",
+                                },
+                                {
+                                    columnName: "columnWhere32",
+                                    operation: "<=",
+                                },
+                            ],
+                        },
+                        {
+                            columnName: "columnWhere4",
+                            operation: "<",
+                        },
+                    ],
+                    columnName: "columnWhere2",
+                    operation: "!=",
+                },
+            })
+            chai.expect(queryRemove4).to.be.a("string")
+            chai.expect(queryRemove4.length).to.be.above(0, "Query not empty")
+            chai.expect(queryRemove4).to.deep.equal(
+                "DELETE FROM test WHERE (columnWhere=? OR (columnWhere2!=? AND (columnWhere3>? OR columnWhere31>=? OR columnWhere32<=?) AND columnWhere4<?));",
             )
         })
         it("select", () => {
@@ -202,7 +309,7 @@ export default (): Mocha.Suite => {
             chai.expect(querySelect1).to.deep.equal("SELECT a,b,c FROM test;")
 
             const querySelect2 = db.queries.select("test", ["a", "b", "c"], {
-                whereColumn: "id",
+                whereColumns: { columnName: "id" },
             })
             chai.expect(querySelect2).to.be.a("string")
             chai.expect(querySelect2.length).to.be.above(0, "Query not empty")
@@ -211,7 +318,7 @@ export default (): Mocha.Suite => {
             )
 
             const querySelect3 = db.queries.select("test", ["a", "b", "c"], {
-                whereColumn: { columnName: "id", tableName: "test" },
+                whereColumns: { columnName: "id", tableName: "test" },
             })
             chai.expect(querySelect3).to.be.a("string")
             chai.expect(querySelect3.length).to.be.above(0, "Query not empty")
@@ -227,7 +334,7 @@ export default (): Mocha.Suite => {
                         thisColumn: "id",
                     },
                 ],
-                whereColumn: { columnName: "id", tableName: "test" },
+                whereColumns: { columnName: "id", tableName: "test" },
             })
             chai.expect(querySelect4).to.be.a("string")
             chai.expect(querySelect4.length).to.be.above(0, "Query not empty")
@@ -244,16 +351,49 @@ export default (): Mocha.Suite => {
                     },
                 ],
                 limit: 10,
-                offset: 2,
-                whereColumn: { columnName: "id", tableName: "test" },
+                whereColumns: { columnName: "id", tableName: "test" },
             })
             chai.expect(querySelect5).to.be.a("string")
             chai.expect(querySelect5.length).to.be.above(0, "Query not empty")
             chai.expect(querySelect5).to.deep.equal(
-                "SELECT a,b,c FROM test INNER JOIN other_test ON other_test.other_id=id WHERE test.id=? LIMIT 10 OFFSET 2;",
+                "SELECT a,b,c FROM test INNER JOIN other_test ON other_test.other_id=id WHERE test.id=? LIMIT 10;",
             )
 
-            // TODO Check all select query options
+            const querySelect6 = db.queries.select(
+                "test",
+                [{ columnName: "a", tableName: "test" }],
+                {
+                    limitOffset: 0,
+                    orderBy: [
+                        {
+                            ascending: true,
+                            column: "b",
+                        },
+                        {
+                            ascending: false,
+                            column: "c",
+                            tableName: "test",
+                        },
+                    ],
+                    unique: true,
+                },
+            )
+            chai.expect(querySelect6).to.be.a("string")
+            chai.expect(querySelect6.length).to.be.above(0, "Query not empty")
+            chai.expect(querySelect6).to.deep.equal(
+                "SELECT DISTINCT test.a FROM test ORDER BY b ASC,test.c DESC;",
+            )
+
+            const querySelect7 = db.queries.select("test", ["*"], {
+                limit: 20,
+                limitOffset: 10,
+                orderBy: [],
+            })
+            chai.expect(querySelect7).to.be.a("string")
+            chai.expect(querySelect7.length).to.be.above(0, "Query not empty")
+            chai.expect(querySelect7).to.deep.equal(
+                "SELECT * FROM test LIMIT 20 OFFSET 10;",
+            )
         })
         it("update", () => {
             const queryUpdate1 = db.queries.update("test", ["a", "b", "c"])
@@ -263,11 +403,9 @@ export default (): Mocha.Suite => {
                 "UPDATE test SET a=?,b=?,c=? WHERE id=?;",
             )
 
-            const queryUpdate2 = db.queries.update(
-                "test",
-                ["a", "b", "c"],
-                "whereColumn",
-            )
+            const queryUpdate2 = db.queries.update("test", ["a", "b", "c"], {
+                columnName: "whereColumn",
+            })
             chai.expect(queryUpdate2).to.be.a("string")
             chai.expect(queryUpdate2.length).to.be.above(0, "Query not empty")
             chai.expect(queryUpdate2).to.deep.equal(

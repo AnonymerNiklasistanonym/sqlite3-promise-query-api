@@ -2,7 +2,7 @@
  * Create `DELETE` query.
  *
  * @param tableName Sanitized table name.
- * @param whereColumnName Sanitized column on which value a row should be
+ * @param whereColumns Sanitized column on which value a row should be
  * removed.
  * @returns SQLite query.
  * @example
@@ -10,8 +10,11 @@
  * DELETE FROM tableName: string WHERE whereColumn=?;
  * ```
  */
-export const remove = (tableName: string, whereColumnName = "id"): string => {
-    return `DELETE FROM ${tableName} WHERE ${whereColumnName}=?;`
+export const remove = (
+    tableName: string,
+    whereColumns: SelectWhereColumn = { columnName: "id" },
+): string => {
+    return `DELETE FROM ${tableName} ${where(whereColumns)};`
 }
 
 /**
@@ -42,7 +45,7 @@ export interface ExistsDbOut {
  * Create `EXISTS` query.
  *
  * @param tableName Sanitized table name.
- * @param whereColumnName Sanitized column name which is checked for existing
+ * @param whereColumns Sanitized column name which is checked for existing
  * with query value.
  * @returns SQLite query.
  * @example
@@ -50,8 +53,13 @@ export interface ExistsDbOut {
  * SELECT EXISTS(SELECT 1 FROM tableName: string WHERE column=? AS exists_value;
  * ```
  */
-export const exists = (tableName: string, whereColumnName = "id"): string => {
-    return `SELECT EXISTS(SELECT 1 FROM ${tableName} WHERE ${whereColumnName}=?) AS exists_value;`
+export const exists = (
+    tableName: string,
+    whereColumns: SelectWhereColumn = { columnName: "id" },
+): string => {
+    return `SELECT EXISTS(SELECT 1 FROM ${tableName} ${where(
+        whereColumns,
+    )}) AS exists_value;`
 }
 
 export interface SelectQueryInnerJoin {
@@ -88,10 +96,9 @@ export interface SelectQueryOrderBy {
      * Name of the column that should be sorted.
      */
     column: string
-}
-
-export interface SelectWhereColumn {
-    columnName: string
+    /**
+     * Name of the table of the column.
+     */
     tableName?: string
 }
 
@@ -101,7 +108,7 @@ export interface SelectQueryOptions {
      */
     innerJoins?: SelectQueryInnerJoin[]
     limit?: number
-    offset?: number
+    limitOffset?: number
     /**
      * Additionally order the results by some columns.
      */
@@ -112,13 +119,9 @@ export interface SelectQueryOptions {
     unique?: boolean
     /**
      * Describe a specification of which value a row needs to have to be included
-     * `WHERE column = ?`.
+     * `WHERE column=?`/`WHERE columnA=? OR columnB=?`.
      */
-    whereColumn?: string | SelectWhereColumn
-    /**
-     * Describe a complicated where information: overwrites whereColumn if defined.
-     */
-    whereCustom?: string
+    whereColumns?: SelectWhereColumn
 }
 
 export interface SelectColumn {
@@ -141,14 +144,61 @@ export interface SelectColumn {
  * ROW_NUMBER () OVER (ORDER BY name DESC) as rank
  * ```
  */
-export const rowNumberOver = (orderBy: SelectQueryOrderBy[]) => {
+export const rowNumberOver = (orderByElements: SelectQueryOrderBy[]) => {
+    return `ROW_NUMBER () OVER (${orderBy(orderByElements)})`
+}
+
+export interface SelectWhereColumn {
+    and?: SelectWhereColumn | SelectWhereColumn[]
+    columnName: string
+    tableName?: string
+    operation?: "!=" | "=" | ">=" | "<=" | "<" | ">"
+    or?: SelectWhereColumn | SelectWhereColumn[]
+}
+
+const whereHelper = (whereOption: SelectWhereColumn): string => {
+    let whereStr = `${
+        whereOption.tableName !== undefined ? `${whereOption.tableName}.` : ""
+    }${whereOption.columnName}${
+        whereOption.operation !== undefined ? whereOption.operation : "="
+    }?`
+    if (Array.isArray(whereOption.and) && whereOption.and.length > 0) {
+        whereStr = `(${[whereStr, ...whereOption.and.map(whereHelper)].join(
+            " AND ",
+        )})`
+    }
+    if (!Array.isArray(whereOption.and) && whereOption.and !== undefined) {
+        whereStr = `(${[whereStr, whereHelper(whereOption.and)].join(" AND ")})`
+    }
+    if (Array.isArray(whereOption.or) && whereOption.or.length > 0) {
+        whereStr = `(${[whereStr, ...whereOption.or.map(whereHelper)].join(
+            " OR ",
+        )})`
+    }
+    if (!Array.isArray(whereOption.or) && whereOption.or !== undefined) {
+        whereStr = `(${[whereStr, whereHelper(whereOption.or)].join(" OR ")})`
+    }
+    return whereStr
+}
+
+export const where = (whereOption: SelectWhereColumn) => {
+    const whereStr = whereHelper(whereOption)
+    return `WHERE ${whereStr}`
+}
+
+export const orderBy = (orderBy: SelectQueryOrderBy[]) => {
     let orderByStr = ""
     if (orderBy.length > 0) {
         orderByStr =
             "ORDER BY " +
-            orderBy.map((a) => `${a.column} ${a.ascending ? "ASC" : "DESC"}`)
+            orderBy.map(
+                (a) =>
+                    `${a.tableName !== undefined ? `${a.tableName}.` : ""}${
+                        a.column
+                    } ${a.ascending ? "ASC" : "DESC"}`,
+            )
     }
-    return `ROW_NUMBER () OVER (${orderByStr})`
+    return orderByStr
 }
 
 /**
@@ -188,35 +238,17 @@ export const select = (
                         `INNER JOIN ${a.otherTableName} ON ${a.otherTableName}.${a.otherColumn}=${a.thisColumn}`,
                 )
                 .join(" ")
-            if (innerJoinsStr.length > 0) {
-                innerJoinsStr = ` ${innerJoinsStr}`
-            }
         }
-        if (options.whereColumn) {
-            if (typeof options.whereColumn === "string") {
-                whereStr = ` WHERE ${options.whereColumn}=?`
-            } else if (options.whereColumn.tableName !== undefined) {
-                whereStr = ` WHERE ${options.whereColumn.tableName}.${options.whereColumn.columnName}=?`
-            } else {
-                whereStr = ` WHERE ${tableName}.${options.whereColumn.columnName}=?`
-            }
+        if (options.whereColumns) {
+            whereStr = where(options.whereColumns)
         }
         if (options.orderBy) {
-            orderStr =
-                " ORDER BY " +
-                options.orderBy
-                    .map(
-                        (order) =>
-                            order.column +
-                            " " +
-                            (order.ascending ? "ASC" : "DESC"),
-                    )
-                    .join(",")
+            orderStr = orderBy(options.orderBy)
         }
         if (options.limit) {
-            limitStr = ` LIMIT ${options.limit}`
-            if (options.offset) {
-                limitStr += ` OFFSET ${options.offset}`
+            limitStr = `LIMIT ${options.limit}`
+            if (options.limitOffset) {
+                limitStr += ` OFFSET ${options.limitOffset}`
             }
         }
     }
@@ -239,7 +271,10 @@ export const select = (
     )
     return (
         `SELECT ${uniqueStr}${columnStrings.join(",")} ` +
-        `FROM ${tableName}${innerJoinsStr}${whereStr}${orderStr}${limitStr};`
+        `FROM ${tableName}${[innerJoinsStr, whereStr, orderStr, limitStr]
+            .filter((a) => a.length > 0)
+            .map((a) => ` ${a}`)
+            .join("")};`
     )
 }
 
@@ -391,7 +426,7 @@ export const createTable = (
             const foreign = column.foreign as CreateTableColumnForeign
             return (
                 `FOREIGN KEY (${column.name}) REFERENCES ${foreign.tableName} (${foreign.column})` +
-                (foreign.options !== undefined
+                (foreign.options !== undefined && foreign.options.length > 0
                     ? " " + foreign.options.join(" ")
                     : "")
             )
@@ -477,7 +512,7 @@ export const dropView = (viewName: string, ifExists = false): string => {
  *
  * @param tableName Name of the table.
  * @param values Values that should be updated.
- * @param whereColumn Column where the row changes should be made.
+ * @param whereColumns Column where the row changes should be made.
  * @returns SQLite query.
  * @example
  * ```sql
@@ -490,8 +525,8 @@ export const dropView = (viewName: string, ifExists = false): string => {
 export const update = (
     tableName: string,
     values: string[],
-    whereColumn = "id",
+    whereColumns: SelectWhereColumn = { columnName: "id" },
 ): string => {
     const setString = values.map((value) => `${value}=?`).join(",")
-    return `UPDATE ${tableName} SET ${setString} WHERE ${whereColumn}=?;`
+    return `UPDATE ${tableName} SET ${setString} ${where(whereColumns)};`
 }
