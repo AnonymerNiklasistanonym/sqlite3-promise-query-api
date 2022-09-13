@@ -150,6 +150,8 @@ export const rowNumberOver = (orderByElements: SelectQueryOrderBy[]) => {
 
 export interface SelectWhereColumn {
     and?: SelectWhereColumn | SelectWhereColumn[]
+    lower?: boolean
+    upper?: boolean
     columnName: string
     tableName?: string
     operation?: "!=" | "=" | ">=" | "<=" | "<" | ">"
@@ -157,9 +159,16 @@ export interface SelectWhereColumn {
 }
 
 const whereHelper = (whereOption: SelectWhereColumn): string => {
-    let whereStr = `${
+    let columnNameStr = `${
         whereOption.tableName !== undefined ? `${whereOption.tableName}.` : ""
-    }${whereOption.columnName}${
+    }${whereOption.columnName}`
+    if (whereOption.lower) {
+        columnNameStr = `lower(${columnNameStr})`
+    }
+    if (whereOption.upper) {
+        columnNameStr = `upper(${columnNameStr})`
+    }
+    let whereStr = `${columnNameStr}${
         whereOption.operation !== undefined ? whereOption.operation : "="
     }?`
     if (Array.isArray(whereOption.and) && whereOption.and.length > 0) {

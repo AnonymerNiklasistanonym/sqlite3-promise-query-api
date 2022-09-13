@@ -351,12 +351,16 @@ export default (): Mocha.Suite => {
                     },
                 ],
                 limit: 10,
-                whereColumns: { columnName: "id", tableName: "test" },
+                whereColumns: {
+                    columnName: "id",
+                    lower: true,
+                    tableName: "test",
+                },
             })
             chai.expect(querySelect5).to.be.a("string")
             chai.expect(querySelect5.length).to.be.above(0, "Query not empty")
             chai.expect(querySelect5).to.deep.equal(
-                "SELECT a,b,c FROM test INNER JOIN other_test ON other_test.other_id=id WHERE test.id=? LIMIT 10;",
+                "SELECT a,b,c FROM test INNER JOIN other_test ON other_test.other_id=id WHERE lower(test.id)=? LIMIT 10;",
             )
 
             const querySelect6 = db.queries.select(
@@ -405,11 +409,12 @@ export default (): Mocha.Suite => {
 
             const queryUpdate2 = db.queries.update("test", ["a", "b", "c"], {
                 columnName: "whereColumn",
+                upper: true,
             })
             chai.expect(queryUpdate2).to.be.a("string")
             chai.expect(queryUpdate2.length).to.be.above(0, "Query not empty")
             chai.expect(queryUpdate2).to.deep.equal(
-                "UPDATE test SET a=?,b=?,c=? WHERE whereColumn=?;",
+                "UPDATE test SET a=?,b=?,c=? WHERE upper(whereColumn)=?;",
             )
         })
     })
