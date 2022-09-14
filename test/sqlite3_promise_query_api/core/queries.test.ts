@@ -67,6 +67,7 @@ export default (): Mocha.Suite => {
                             tableName: "contacts",
                         },
                         name: "contact_id",
+                        options: { primaryKey: true },
                         type: db.queries.CreateTableColumnType.INTEGER,
                     },
                     {
@@ -96,7 +97,7 @@ export default (): Mocha.Suite => {
             )
             chai.expect(queryCreateTable3).to.deep.equal(
                 "CREATE TABLE IF NOT EXISTS contact_groups " +
-                    "(contact_id INTEGER,group_id INTEGER,group_id_2 INTEGER," +
+                    "(contact_id INTEGER,group_id INTEGER,group_id_2 INTEGER,PRIMARY KEY (contact_id)," +
                     "FOREIGN KEY (contact_id) REFERENCES contacts (contact_id) ON DELETE CASCADE ON UPDATE NO ACTION," +
                     "FOREIGN KEY (group_id) REFERENCES groups (group_id)," +
                     "FOREIGN KEY (group_id_2) REFERENCES groups (group_id));",
@@ -117,7 +118,11 @@ export default (): Mocha.Suite => {
                     },
                     {
                         name: "text_with_default",
-                        options: { default: "'default'", notNull: true },
+                        options: {
+                            default: "'default'",
+                            notNull: true,
+                            primaryKey: true,
+                        },
                         type: db.queries.CreateTableColumnType.TEXT,
                     },
                     {
@@ -139,7 +144,7 @@ export default (): Mocha.Suite => {
             )
             chai.expect(queryCreateTable4).to.deep.equal(
                 "CREATE TABLE table_column_options_test " +
-                    "(integer_with_default INTEGER DEFAULT 0,real_with_default REAL NOT NULL DEFAULT 72.934,text_with_default TEXT NOT NULL DEFAULT 'default',id INTEGER PRIMARY KEY UNIQUE NOT NULL);",
+                    "(integer_with_default INTEGER DEFAULT 0,real_with_default REAL NOT NULL DEFAULT 72.934,text_with_default TEXT NOT NULL DEFAULT 'default',id INTEGER UNIQUE NOT NULL,PRIMARY KEY (text_with_default,id));",
             )
         })
         it("drop table", () => {

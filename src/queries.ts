@@ -402,9 +402,6 @@ export const createTable = (
     ): string => {
         const columnOptionsArray = []
         if (columnOptions) {
-            if (columnOptions.primaryKey) {
-                columnOptionsArray.push("PRIMARY KEY")
-            }
             if (columnOptions.unique) {
                 columnOptionsArray.push("UNIQUE")
             }
@@ -421,6 +418,15 @@ export const createTable = (
             return " " + columnOptionsArray.join(" ")
         }
     }
+    let primaryKeyString = ""
+    const primaryKeyColumns = columns.filter(
+        (a) => a.options?.primaryKey === true,
+    )
+    if (primaryKeyColumns.length > 0) {
+        primaryKeyString = `PRIMARY KEY (${primaryKeyColumns
+            .map((a) => a.name)
+            .join(",")})`
+    }
     const columnsString = columns
         .map((column) => {
             return (
@@ -428,6 +434,7 @@ export const createTable = (
                 `${columnOptionsToString(column.options)}`
             )
         })
+        .concat(primaryKeyString === "" ? [] : [primaryKeyString])
         .join(",")
     const foreignKeysString = columns
         .filter((column) => column.foreign !== undefined)
