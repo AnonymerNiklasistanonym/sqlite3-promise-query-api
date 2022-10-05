@@ -9,6 +9,8 @@ export { CreateTableColumnType } from "./queries"
 
 export type { Logger } from "./logging"
 export type {
+    AlterTableRenameColumn,
+    AlterTableOptions,
     CreateTableColumn,
     CreateTableColumnForeign,
     CreateTableColumnOptions,
@@ -18,6 +20,7 @@ export type {
     SelectQueryOptions,
     SelectQueryOrderBy,
     SelectWhereColumn,
+    UpdateColumn,
 } from "./queries"
 export type { OpenDatabaseOptions, SqliteInternalError } from "./sqlite3"
 export type { SqliteTable, SqliteView } from "./helper"

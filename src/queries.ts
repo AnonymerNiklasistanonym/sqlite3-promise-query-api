@@ -340,7 +340,7 @@ export interface CreateTableColumnOptions {
 /**
  * Information about a SQLite table column.
  */
-export interface CreateTableColumn {
+export interface CreateTableColumn<OPTIONS = CreateTableColumnOptions> {
     /**
      * Foreign key options.
      */
@@ -352,7 +352,7 @@ export interface CreateTableColumn {
     /**
      * Column options (`NOT NULL`, `UNIQUE`, `PRIMARY KEY`).
      */
-    options?: CreateTableColumnOptions
+    options?: OPTIONS
     /**
      * Column type (`INTEGER`, `TEXT`).
      */
@@ -374,29 +374,7 @@ export interface CreateTableColumnForeign {
     tableName: string
 }
 
-/**
- * Create database table.
- *
- * @param tableName The name of the table.
- * @param columns The columns of the table.
- * @param ifNotExists Create table if not already existing.
- * @returns SQLite query.
- * @example
- * ```sql
- * CREATE TABLE IF NOT EXISTS contacts (
- * contact_id INTEGER PRIMARY KEY,
- * first_name TEXT NOT NULL,
- * last_name TEXT NOT NULL,
- * email text NOT NULL UNIQUE,
- * phone text NOT NULL UNIQUE
- * );
- * ```
- */
-export const createTable = (
-    tableName: string,
-    columns: CreateTableColumn[],
-    ifNotExists = false,
-): string => {
+const createAddColumnsString = (columns: CreateTableColumn[]): string => {
     const columnOptionsToString = (
         columnOptions?: CreateTableColumnOptions,
     ): string => {
@@ -449,11 +427,35 @@ export const createTable = (
         })
     const foreignKeysStringFinal =
         foreignKeysString.length > 0 ? "," + foreignKeysString.join(",") : ""
-    return (
-        `CREATE TABLE ${ifNotExists ? "IF NOT EXISTS " : ""}${tableName} (` +
-        `${columnsString}${foreignKeysStringFinal});`
-    )
+    return `${columnsString}${foreignKeysStringFinal}`
 }
+
+/**
+ * Create database table.
+ *
+ * @param tableName The name of the table.
+ * @param columns The columns of the table.
+ * @param ifNotExists Create table if not already existing.
+ * @returns SQLite query.
+ * @example
+ * ```sql
+ * CREATE TABLE IF NOT EXISTS contacts (
+ * contact_id INTEGER PRIMARY KEY,
+ * first_name TEXT NOT NULL,
+ * last_name TEXT NOT NULL,
+ * email text NOT NULL UNIQUE,
+ * phone text NOT NULL UNIQUE
+ * );
+ * ```
+ */
+export const createTable = (
+    tableName: string,
+    columns: CreateTableColumn[],
+    ifNotExists = false,
+): string =>
+    `CREATE TABLE ${
+        ifNotExists ? "IF NOT EXISTS " : ""
+    }${tableName} (${createAddColumnsString(columns)});`
 
 /**
  * Delete a database table.
@@ -469,6 +471,59 @@ export const createTable = (
  */
 export const dropTable = (tableName: string, ifExists = false): string => {
     return `DROP TABLE ${ifExists ? "IF EXISTS " : ""}${tableName};`
+}
+
+export interface AlterTableRenameColumn {
+    columnName: string
+    newColumnName: string
+}
+
+export interface AlterTableOptions {
+    /** Add column. (Primary Key and Unique attributes are not allowed) */
+    addColumn: CreateTableColumn<
+        Pick<CreateTableColumnOptions, "default" | "notNull">
+    >
+    /** Drop column. */
+    dropColumnName: string
+    /** Rename the table. */
+    newTableName: string
+    /** Rename column. */
+    renameColumn: AlterTableRenameColumn
+}
+
+/**
+ * Alter a database table.
+ *
+ * @param tableName Name of the table to alter.
+ * @param option Option for altering the table.
+ * @returns SQLite query.
+ * @example
+ * ```sql
+ * ALTER TABLE contacts
+ * RENAME TO contacts_old;
+ * ```
+ */
+export const alterTable = (
+    tableName: string,
+    option:
+        | Pick<AlterTableOptions, "addColumn">
+        | Pick<AlterTableOptions, "dropColumnName">
+        | Pick<AlterTableOptions, "newTableName">
+        | Pick<AlterTableOptions, "renameColumn">,
+): string => {
+    let optionString
+    if ("addColumn" in option) {
+        optionString = `ADD COLUMN ${createAddColumnsString([
+            option.addColumn,
+        ])}`
+    } else if ("dropColumnName" in option) {
+        optionString = `DROP COLUMN ${option.dropColumnName}`
+    } else if ("newTableName" in option) {
+        optionString = `RENAME TO ${option.newTableName}`
+    } else {
+        optionString = `RENAME COLUMN ${option.renameColumn.columnName} TO ${option.renameColumn.newColumnName}`
+    }
+    return `ALTER TABLE ${tableName} ${optionString};`
 }
 
 /**
@@ -523,6 +578,21 @@ export const dropView = (viewName: string, ifExists = false): string => {
     return `DROP VIEW ${ifExists ? "IF EXISTS " : ""}${viewName};`
 }
 
+export interface UpdateColumn {
+    columnName: string
+    /**
+     * If a special operator is defined commands like the following are possible:
+     * @example
+     * ```sql
+     * UPDATE employees
+     * SET count = count + 1
+     * WHERE
+     * employeeid = 3
+     * ```
+     */
+    operator?: "+=" | "-="
+}
+
 /**
  * Update database table row values.
  *
@@ -540,9 +610,21 @@ export const dropView = (viewName: string, ifExists = false): string => {
  */
 export const update = (
     tableName: string,
-    values: string[],
+    values: (string | UpdateColumn)[],
     whereColumns: SelectWhereColumn = { columnName: "id" },
 ): string => {
-    const setString = values.map((value) => `${value}=?`).join(",")
+    const setString = values
+        .map((value) => {
+            if (typeof value === "string") {
+                return `${value}=?`
+            } else if (value.operator === undefined) {
+                return `${value.columnName}=?`
+            } else {
+                return `${value.columnName}=${value.columnName}${
+                    value.operator === "+=" ? "+" : "-"
+                }?`
+            }
+        })
+        .join(",")
     return `UPDATE ${tableName} SET ${setString} ${where(whereColumns)};`
 }

@@ -168,6 +168,65 @@ export default (): Mocha.Suite => {
                 "DROP TABLE IF EXISTS test;",
             )
         })
+        it("alter table", () => {
+            const queryAlterTable1 = db.queries.alterTable("test", {
+                addColumn: {
+                    name: "new_property",
+                    options: {
+                        default: 42,
+                        notNull: true,
+                    },
+                    type: db.queries.CreateTableColumnType.INTEGER,
+                },
+            })
+            chai.expect(queryAlterTable1).to.be.a("string")
+            chai.expect(queryAlterTable1.length).to.be.above(
+                0,
+                "Query not empty",
+            )
+            chai.expect(queryAlterTable1).to.deep.equal(
+                "ALTER TABLE test ADD COLUMN new_property INTEGER NOT NULL DEFAULT 42;",
+            )
+
+            const queryAlterTable2 = db.queries.alterTable("test", {
+                newTableName: "test_old",
+            })
+            chai.expect(queryAlterTable2).to.be.a("string")
+            chai.expect(queryAlterTable2.length).to.be.above(
+                0,
+                "Query not empty",
+            )
+            chai.expect(queryAlterTable2).to.deep.equal(
+                "ALTER TABLE test RENAME TO test_old;",
+            )
+
+            const queryAlterTable3 = db.queries.alterTable("test", {
+                dropColumnName: "property",
+            })
+            chai.expect(queryAlterTable3).to.be.a("string")
+            chai.expect(queryAlterTable3.length).to.be.above(
+                0,
+                "Query not empty",
+            )
+            chai.expect(queryAlterTable3).to.deep.equal(
+                "ALTER TABLE test DROP COLUMN property;",
+            )
+
+            const queryAlterTable4 = db.queries.alterTable("test", {
+                renameColumn: {
+                    columnName: "property",
+                    newColumnName: "new_property",
+                },
+            })
+            chai.expect(queryAlterTable4).to.be.a("string")
+            chai.expect(queryAlterTable4.length).to.be.above(
+                0,
+                "Query not empty",
+            )
+            chai.expect(queryAlterTable4).to.deep.equal(
+                "ALTER TABLE test RENAME COLUMN property TO new_property;",
+            )
+        })
         it("create view", () => {
             const columns: SelectColumn[] = [
                 {
@@ -420,6 +479,29 @@ export default (): Mocha.Suite => {
             chai.expect(queryUpdate2.length).to.be.above(0, "Query not empty")
             chai.expect(queryUpdate2).to.deep.equal(
                 "UPDATE test SET a=?,b=?,c=? WHERE upper(whereColumn)=?;",
+            )
+
+            const queryUpdate3 = db.queries.update(
+                "test",
+                [
+                    "a",
+                    {
+                        columnName: "b",
+                        operator: "+=",
+                    },
+                    {
+                        columnName: "c",
+                        operator: "-=",
+                    },
+                ],
+                {
+                    columnName: "whereColumn",
+                },
+            )
+            chai.expect(queryUpdate3).to.be.a("string")
+            chai.expect(queryUpdate3.length).to.be.above(0, "Query not empty")
+            chai.expect(queryUpdate3).to.deep.equal(
+                "UPDATE test SET a=?,b=b+?,c=c-? WHERE whereColumn=?;",
             )
         })
     })
