@@ -23,7 +23,7 @@ export type {
     UpdateColumn,
 } from "./queries"
 export type { OpenDatabaseOptions, SqliteInternalError } from "./sqlite3"
-export type { SqliteTable, SqliteView } from "./helper"
+export type { SqliteIndex, SqliteTable, SqliteView } from "./helper"
 
 const sqlite3PromiseQueryApi = {
     queries,
