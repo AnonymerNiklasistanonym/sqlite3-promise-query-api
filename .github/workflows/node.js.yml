@@ -23,16 +23,16 @@ jobs:
     strategy:
       matrix:
         os: [ubuntu-latest,windows-latest]
-        node-version: [17.x, 18.x]
+        node-version: [18.x, 19.x]
     # Run the job on the specified os
     runs-on: ${{ matrix.os }}
     # The following steps should be sequentially executed:
     steps:
     # Checkout the current repository
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
     # Activate the NodeJs plugin with the previously defined versions and cache it
     - name: Use Node.js ${{ matrix.node-version }}
-      uses: actions/setup-node@v2
+      uses: actions/setup-node@v3
       with:
         node-version: ${{ matrix.node-version }}
         cache: 'npm'
