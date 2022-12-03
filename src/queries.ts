@@ -628,3 +628,44 @@ export const update = (
         .join(",")
     return `UPDATE ${tableName} SET ${setString} ${where(whereColumns)};`
 }
+
+/**
+ * Create database index.
+ *
+ * @param indexName The name of the index.
+ * @param tableName The name of the table where the index should be created.
+ * @param columns The columns of the table.
+ * @param ifNotExists Create table if not already existing.
+ * @param whereColumns Column where the row changes should be made.
+ * @returns SQLite query.
+ * @example
+ * ```sql
+ * CREATE INDEX indexName ON tableName(columnName)
+ * ```
+ */
+export const createIndex = (
+    indexName: string,
+    tableName: string,
+    columns: string[],
+    ifNotExists = false,
+    whereColumns?: SelectWhereColumn,
+): string =>
+    `CREATE INDEX ${
+        ifNotExists ? "IF NOT EXISTS " : ""
+    }${indexName} ON ${tableName} (${columns.join(",")})${
+        whereColumns !== undefined ? ` ${where(whereColumns)}` : ""
+    };`
+
+/**
+ * Drop database index.
+ *
+ * @param indexName The name of the index.
+ * @param ifExists Drop only if already existing.
+ * @returns SQLite query.
+ * @example
+ * ```sql
+ * DROP INDEX indexName
+ * ```
+ */
+export const dropIndex = (indexName: string, ifExists = false): string =>
+    `DROP INDEX ${ifExists ? "IF EXISTS " : ""}${indexName};`

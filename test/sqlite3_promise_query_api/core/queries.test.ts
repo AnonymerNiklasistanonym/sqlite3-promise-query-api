@@ -503,6 +503,77 @@ export default (): Mocha.Suite => {
             chai.expect(queryUpdate3).to.deep.equal(
                 "UPDATE test SET a=?,b=b+?,c=c-? WHERE whereColumn=?;",
             )
+
+            const queryUpdate4 = db.queries.update(
+                "test",
+                [
+                    "a",
+                    {
+                        columnName: "b",
+                    },
+                ],
+                {
+                    columnName: "whereColumn",
+                },
+            )
+            chai.expect(queryUpdate4).to.be.a("string")
+            chai.expect(queryUpdate4.length).to.be.above(0, "Query not empty")
+            chai.expect(queryUpdate4).to.deep.equal(
+                "UPDATE test SET a=?,b=? WHERE whereColumn=?;",
+            )
+        })
+        it("createIndex", () => {
+            const queryCreateIndex1 = db.queries.createIndex(
+                "test",
+                "test_table",
+                ["a", "b", "c"],
+            )
+            chai.expect(queryCreateIndex1).to.be.a("string")
+            chai.expect(queryCreateIndex1.length).to.be.above(
+                0,
+                "Query not empty",
+            )
+            chai.expect(queryCreateIndex1).to.deep.equal(
+                "CREATE INDEX test ON test_table (a,b,c);",
+            )
+
+            const queryCreateIndex2 = db.queries.createIndex(
+                "test",
+                "test_table",
+                ["count"],
+                true,
+                {
+                    columnName: "count",
+                    operation: ">",
+                },
+            )
+            chai.expect(queryCreateIndex2).to.be.a("string")
+            chai.expect(queryCreateIndex2.length).to.be.above(
+                0,
+                "Query not empty",
+            )
+            chai.expect(queryCreateIndex2).to.deep.equal(
+                "CREATE INDEX IF NOT EXISTS test ON test_table (count) WHERE count>?;",
+            )
+        })
+        it("dropIndex", () => {
+            const queryDropIndex1 = db.queries.dropIndex("test")
+            chai.expect(queryDropIndex1).to.be.a("string")
+            chai.expect(queryDropIndex1.length).to.be.above(
+                0,
+                "Query not empty",
+            )
+            chai.expect(queryDropIndex1).to.deep.equal("DROP INDEX test;")
+
+            const queryDropIndex2 = db.queries.dropIndex("test", true)
+            chai.expect(queryDropIndex2).to.be.a("string")
+            chai.expect(queryDropIndex2.length).to.be.above(
+                0,
+                "Query not empty",
+            )
+            chai.expect(queryDropIndex2).to.deep.equal(
+                "DROP INDEX IF EXISTS test;",
+            )
         })
     })
 }
