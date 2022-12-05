@@ -12,7 +12,7 @@
  */
 export const remove = (
     tableName: string,
-    whereColumns: SelectWhereColumn = { columnName: "id" },
+    whereColumns: Readonly<SelectWhereColumn> = { columnName: "id" },
 ): string => {
     return `DELETE FROM ${tableName} ${where(whereColumns)};`
 }
@@ -29,7 +29,10 @@ export const remove = (
  * INSERT INTO tableName: string(column_0, column_i, column_n) VALUES(?, ?, ?);
  * ```
  */
-export const insert = (tableName: string, columnNames: string[]): string => {
+export const insert = (
+    tableName: string,
+    columnNames: Readonly<string[]>,
+): string => {
     return (
         `INSERT INTO ${tableName}(${columnNames.join(",")}) ` +
         `VALUES(${columnNames.map(() => "?").join(",")});`
@@ -55,7 +58,7 @@ export interface ExistsDbOut {
  */
 export const exists = (
     tableName: string,
-    whereColumns: SelectWhereColumn = { columnName: "id" },
+    whereColumns: Readonly<SelectWhereColumn> = { columnName: "id" },
 ): string => {
     return `SELECT EXISTS(SELECT 1 FROM ${tableName} ${where(
         whereColumns,
@@ -144,7 +147,9 @@ export interface SelectColumn {
  * ROW_NUMBER () OVER (ORDER BY name DESC) as rank
  * ```
  */
-export const rowNumberOver = (orderByElements: SelectQueryOrderBy[]) => {
+export const rowNumberOver = (
+    orderByElements: Readonly<SelectQueryOrderBy[]>,
+) => {
     return `ROW_NUMBER () OVER (${orderBy(orderByElements)})`
 }
 
@@ -158,7 +163,7 @@ export interface SelectWhereColumn {
     or?: SelectWhereColumn | SelectWhereColumn[]
 }
 
-const whereHelper = (whereOption: SelectWhereColumn): string => {
+const whereHelper = (whereOption: Readonly<SelectWhereColumn>): string => {
     let columnNameStr = `${
         whereOption.tableName !== undefined ? `${whereOption.tableName}.` : ""
     }${whereOption.columnName}`
@@ -190,12 +195,12 @@ const whereHelper = (whereOption: SelectWhereColumn): string => {
     return whereStr
 }
 
-export const where = (whereOption: SelectWhereColumn) => {
+export const where = (whereOption: Readonly<SelectWhereColumn>) => {
     const whereStr = whereHelper(whereOption)
     return `WHERE ${whereStr}`
 }
 
-export const orderBy = (orderBy: SelectQueryOrderBy[]) => {
+export const orderBy = (orderBy: Readonly<SelectQueryOrderBy[]>) => {
     let orderByStr = ""
     if (orderBy.length > 0) {
         orderByStr =
@@ -228,8 +233,8 @@ export const orderBy = (orderBy: SelectQueryOrderBy[]) => {
  */
 export const select = (
     tableName: string,
-    columns: (string | SelectColumn)[],
-    options?: SelectQueryOptions,
+    columns: Readonly<(string | Readonly<SelectColumn>)[]>,
+    options?: Readonly<SelectQueryOptions>,
 ): string => {
     let innerJoinsStr = ""
     let whereStr = ""
@@ -374,7 +379,9 @@ export interface CreateTableColumnForeign {
     tableName: string
 }
 
-const createAddColumnsString = (columns: CreateTableColumn[]): string => {
+const createAddColumnsString = (
+    columns: Readonly<CreateTableColumn[]>,
+): string => {
     const columnOptionsToString = (
         columnOptions?: CreateTableColumnOptions,
     ): string => {
@@ -450,7 +457,7 @@ const createAddColumnsString = (columns: CreateTableColumn[]): string => {
  */
 export const createTable = (
     tableName: string,
-    columns: CreateTableColumn[],
+    columns: Readonly<CreateTableColumn[]>,
     ifNotExists = false,
 ): string =>
     `CREATE TABLE ${
@@ -506,10 +513,10 @@ export interface AlterTableOptions {
 export const alterTable = (
     tableName: string,
     option:
-        | Pick<AlterTableOptions, "addColumn">
-        | Pick<AlterTableOptions, "dropColumnName">
-        | Pick<AlterTableOptions, "newTableName">
-        | Pick<AlterTableOptions, "renameColumn">,
+        | Readonly<Pick<AlterTableOptions, "addColumn">>
+        | Readonly<Pick<AlterTableOptions, "dropColumnName">>
+        | Readonly<Pick<AlterTableOptions, "newTableName">>
+        | Readonly<Pick<AlterTableOptions, "renameColumn">>,
 ): string => {
     let optionString
     if ("addColumn" in option) {
@@ -552,8 +559,8 @@ export const alterTable = (
 export const createView = (
     viewName: string,
     tableName: string,
-    columns: (string | SelectColumn)[],
-    options?: SelectQueryOptions,
+    columns: Readonly<(string | Readonly<SelectColumn>)[]>,
+    options?: Readonly<SelectQueryOptions>,
     ifNotExists = false,
 ): string => {
     return (
@@ -610,8 +617,8 @@ export interface UpdateColumn {
  */
 export const update = (
     tableName: string,
-    values: (string | UpdateColumn)[],
-    whereColumns: SelectWhereColumn = { columnName: "id" },
+    values: Readonly<(string | Readonly<UpdateColumn>)[]>,
+    whereColumns: Readonly<SelectWhereColumn> = { columnName: "id" },
 ): string => {
     const setString = values
         .map((value) => {
@@ -646,9 +653,9 @@ export const update = (
 export const createIndex = (
     indexName: string,
     tableName: string,
-    columns: string[],
+    columns: Readonly<string[]>,
     ifNotExists = false,
-    whereColumns?: SelectWhereColumn,
+    whereColumns?: Readonly<SelectWhereColumn>,
 ): string =>
     `CREATE INDEX ${
         ifNotExists ? "IF NOT EXISTS " : ""

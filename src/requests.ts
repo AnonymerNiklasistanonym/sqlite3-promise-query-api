@@ -56,7 +56,7 @@ export const isDatabaseError = (error: unknown): boolean => {
 export const getEach = async <DB_OUT extends Record<string, any>>(
     databasePath: string,
     query: string,
-    parameters: (string | number)[] = [],
+    parameters: Readonly<(string | number)[]> = [],
     logger?: Logger,
 ): Promise<DB_OUT | undefined> => {
     if (logger !== undefined) {
@@ -141,7 +141,7 @@ export const getEach = async <DB_OUT extends Record<string, any>>(
 export const getAll = async <DB_OUT extends Record<string, any>>(
     databasePath: string,
     query: string,
-    parameters: (string | number)[] = [],
+    parameters: Readonly<(string | number)[]> = [],
     logger?: Logger,
 ): Promise<DB_OUT[]> => {
     if (logger !== undefined) {
@@ -199,7 +199,7 @@ export const getAll = async <DB_OUT extends Record<string, any>>(
 export const post = async (
     databasePath: string,
     query: string,
-    parameters: (string | number)[] = [],
+    parameters: Readonly<(string | number)[]> = [],
     logger?: Logger,
 ): Promise<RunResult> => {
     if (logger !== undefined) {

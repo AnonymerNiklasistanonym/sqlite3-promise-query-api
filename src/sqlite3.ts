@@ -25,7 +25,7 @@ export interface OpenDatabaseOptions {
 export const open = async (
     dbNamePath: string,
     logger?: Logger,
-    options?: OpenDatabaseOptions,
+    options?: Readonly<OpenDatabaseOptions>,
 ): Promise<Database> => {
     return new Promise((resolve, reject) => {
         if (logger !== undefined) {
